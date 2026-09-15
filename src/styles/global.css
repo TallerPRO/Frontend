@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+/*
+ * TallerPro no usa tailwind.config.mjs: Astro 7 instala Tailwind v4, cuya
+ * fuente de verdad es este bloque @theme (la spec original pedía v3 +
+ * tailwind.config.mjs, pero @astrojs/tailwind no soporta Astro 7).
+ */
+@theme {
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-500: #e07b1a;
+  --color-brand-600: #c2620f;
+  --color-brand-700: #9a4a08;
+
+  --color-navy-800: #1a2332;
+  --color-navy-900: #0f1623;
+
+  --color-status-received: #60a5fa;
+  --color-status-diagnosed: #a78bfa;
+  --color-status-repairing: #fbbf24;
+  --color-status-ready: #34d399;
+  --color-status-delivered: #6ee7b7;
+  --color-status-cancelled: #f87171;
+
+  --color-bay-free: #34d399;
+  --color-bay-reserved: #fbbf24;
+  --color-bay-busy: #f87171;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-size: 14px;
+}

@@ -1,0 +1,28 @@
+---
+// Esta página captura todas las rutas /app/* y monta la SPA de React.
+// React Router (basename="/app") toma el control del routing interno.
+import '../../styles/global.css';
+import App from '../../app/App';
+
+export const prerender = true;
+export function getStaticPaths() {
+  // Astro necesita al menos una ruta estática para [...path] en output "static".
+  // El resto de las rutas /app/* las resuelve React Router en el cliente.
+  return [{ params: { path: undefined } }];
+}
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TallerPro</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-navy-900 text-gray-100">
+    <div id="root" class="min-h-screen">
+      <App client:only="react" />
+    </div>
+  </body>
+</html>

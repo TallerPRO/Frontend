@@ -1,0 +1,19 @@
+---
+import '../../styles/global.css';
+import { AuthCallback } from '../../components/auth/AuthCallback';
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verificando acceso… — TallerPro</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="bg-navy-900">
+    <!-- Solo la vista: procesar el resultado de MSAL y decidir el redirect
+         a /app/dashboard lo hace quien integre el login. -->
+    <AuthCallback client:load />
+  </body>
+</html>
