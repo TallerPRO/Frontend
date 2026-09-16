@@ -4,7 +4,11 @@ import { OrdersView } from './views/OrdersView';
 import { CreateOrderView } from './views/CreateOrderView';
 import { OrderDetailView } from './views/OrderDetailView';
 import { BaysView } from './views/BaysView';
-import { PlaceholderView } from './views/PlaceholderView';
+import { ServicesView } from './views/ServicesView';
+import { PartsView } from './views/PartsView';
+import { ReportsView } from './views/ReportsView';
+import { AuditView } from './views/AuditView';
+import { ProfileView } from './views/ProfileView';
 
 export interface RouteConfig {
   path: string;
@@ -19,24 +23,9 @@ export const routes: RouteConfig[] = [
   { path: '/orders/new', element: <CreateOrderView /> },
   { path: '/orders/:id', element: <OrderDetailView /> },
   { path: '/bays', element: <BaysView /> },
-  {
-    path: '/catalog/services',
-    element: <PlaceholderView title="Servicios" description="Catálogo de servicios" phase="la Fase 6" />,
-  },
-  {
-    path: '/catalog/parts',
-    element: <PlaceholderView title="Repuestos" description="Catálogo de repuestos" phase="la Fase 6" />,
-  },
-  {
-    path: '/reports',
-    element: <PlaceholderView title="Reportes" description="Reportería operativa" phase="la Fase 7" />,
-  },
-  {
-    path: '/audit',
-    element: <PlaceholderView title="Auditoría" description="Log de eventos del sistema" phase="la Fase 8" />,
-  },
-  {
-    path: '/profile',
-    element: <PlaceholderView title="Perfil" description="Datos de la cuenta" phase="una fase futura" />,
-  },
+  { path: '/catalog/services', element: <ServicesView /> },
+  { path: '/catalog/parts', element: <PartsView /> },
+  { path: '/reports', element: <ReportsView /> },
+  { path: '/audit', element: <AuditView /> },
+  { path: '/profile', element: <ProfileView /> },
 ];
