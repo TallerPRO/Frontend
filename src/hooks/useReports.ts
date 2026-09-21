@@ -5,6 +5,7 @@ import {
   getRepairTime,
   getRevenueByWorkshop,
 } from '../api/reports.api';
+import { errorMessage } from '../api/client';
 import type {
   MechanicPerformance,
   OrdersSummaryReport,
@@ -12,19 +13,12 @@ import type {
   ReportPeriod,
   RevenueByWorkshop,
 } from '../types/report.types';
-import {
-  MOCK_MECHANIC_PERFORMANCE,
-  MOCK_ORDERS_SUMMARY,
-  MOCK_REPAIR_TIME,
-  MOCK_REVENUE_BY_WORKSHOP,
-} from '../lib/mockReports';
 
-// Resumen operativo para el Dashboard. Cae a datos de muestra si el BFF no
-// responde (misma estrategia que useBays).
+// Resumen operativo para el Dashboard (ms-tallerpro-report vía gateway).
 export function useOrdersSummary(workshopId?: string) {
   const [summary, setSummary] = useState<OrdersSummaryReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,12 +27,12 @@ export function useOrdersSummary(workshopId?: string) {
       .then((result) => {
         if (cancelled) return;
         setSummary(result);
-        setUsingMock(false);
+        setError(null);
       })
-      .catch(() => {
+      .catch((err) => {
         if (cancelled) return;
-        setSummary(MOCK_ORDERS_SUMMARY);
-        setUsingMock(true);
+        setSummary(null);
+        setError(errorMessage(err, 'No pudimos cargar el resumen.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -48,7 +42,7 @@ export function useOrdersSummary(workshopId?: string) {
     };
   }, [workshopId]);
 
-  return { summary, loading, usingMock };
+  return { summary, loading, error, usingMock: false };
 }
 
 function defaultPeriod(): ReportPeriod {
@@ -64,7 +58,7 @@ export function useReports(initialPeriod: ReportPeriod = defaultPeriod()) {
   const [repairTime, setRepairTime] = useState<RepairTimeDatum[]>([]);
   const [mechanics, setMechanics] = useState<MechanicPerformance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -77,12 +71,9 @@ export function useReports(initialPeriod: ReportPeriod = defaultPeriod()) {
       setRevenue(revenueResult);
       setRepairTime(repairResult);
       setMechanics(mechanicsResult);
-      setUsingMock(false);
-    } catch {
-      setRevenue(MOCK_REVENUE_BY_WORKSHOP);
-      setRepairTime(MOCK_REPAIR_TIME);
-      setMechanics(MOCK_MECHANIC_PERFORMANCE);
-      setUsingMock(true);
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err, 'No pudimos cargar los reportes.'));
     } finally {
       setLoading(false);
     }
@@ -92,5 +83,5 @@ export function useReports(initialPeriod: ReportPeriod = defaultPeriod()) {
     fetchAll();
   }, [fetchAll]);
 
-  return { period, setPeriod, revenue, repairTime, mechanics, loading, usingMock, refetch: fetchAll };
+  return { period, setPeriod, revenue, repairTime, mechanics, loading, error, usingMock: false, refetch: fetchAll };
 }

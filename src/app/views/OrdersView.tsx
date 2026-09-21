@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Select } from '../../components/ui/Select';
-import { Input } from '../../components/ui/Input';
+import { WORKSHOP_OPTIONS } from '../../lib/workshops';
 import { Button } from '../../components/ui/Button';
 import { OrderTable } from '../../components/orders/OrderTable';
 import { useOrders } from '../../hooks/useOrders';
@@ -40,9 +40,10 @@ export function OrdersView() {
             value={filters.status ?? ''}
             onChange={(e) => setFilters({ status: (e.target.value || undefined) as OrderStatus | undefined })}
           />
-          <Input
+          <Select
             label="Taller"
-            placeholder="ID de taller"
+            placeholder="Todos los talleres"
+            options={WORKSHOP_OPTIONS}
             value={filters.workshopId ?? ''}
             onChange={(e) => setFilters({ workshopId: e.target.value || undefined })}
           />

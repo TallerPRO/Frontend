@@ -11,18 +11,13 @@ import { BayDetailModal } from '../../components/bays/BayDetailModal';
 import { CancelReservationDialog } from '../../components/bays/CancelReservationDialog';
 import { useBays } from '../../hooks/useBays';
 import type { Bay } from '../../types/bay.types';
-
-const WORKSHOP_OPTIONS = [
-  { value: 'w1', label: 'Providencia' },
-  { value: 'w2', label: 'Maipú' },
-  { value: 'w3', label: 'La Florida' },
-  { value: 'w4', label: 'Ñuñoa' },
-  { value: 'w5', label: 'Puente Alto' },
-];
+import { DEFAULT_WORKSHOP_ID, WORKSHOP_OPTIONS } from '../../lib/workshops';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
+import { errorMessage } from '../../api/client';
 
 export function BaysView() {
-  const [workshopId, setWorkshopId] = useState('w1');
-  const { bays, summary, loading, cancel } = useBays(workshopId);
+  const [workshopId, setWorkshopId] = useState(DEFAULT_WORKSHOP_ID);
+  const { bays, summary, loading, error, cancel, checkIn, release } = useBays(workshopId);
   const [selectedBay, setSelectedBay] = useState<Bay | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -34,6 +29,15 @@ export function BaysView() {
     if (!selectedBay?.assignment) return;
     await cancel(selectedBay.id, selectedBay.assignment.reservationId, reason, comment);
     setSelectedBay(null);
+  }
+
+  async function run(action: () => Promise<void>) {
+    try {
+      await action();
+      setSelectedBay(null);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
   }
 
   return (
@@ -58,6 +62,8 @@ export function BaysView() {
         }
       />
 
+      <ErrorBanner message={error} />
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Spinner size="lg" />
@@ -74,12 +80,8 @@ export function BaysView() {
         onClose={() => setSelectedBay(null)}
         bay={selectedBay}
         onCancelReservation={() => setCancelDialogOpen(true)}
-        onCheckIn={() => {
-          toast.info('Check-in disponible cuando el endpoint /check-in esté conectado');
-        }}
-        onRelease={() => {
-          toast.info('Liberar bahía disponible cuando el endpoint /release esté conectado');
-        }}
+        onCheckIn={() => selectedBay && run(() => checkIn(selectedBay.id))}
+        onRelease={() => selectedBay && run(() => release(selectedBay.id))}
       />
 
       <CancelReservationDialog

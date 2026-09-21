@@ -4,7 +4,7 @@ import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { MockBanner } from '../../components/ui/MockBanner';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CatalogTabs } from '../../components/catalog/CatalogTabs';
 import { PartTable } from '../../components/catalog/PartTable';
@@ -13,7 +13,7 @@ import { useParts } from '../../hooks/useCatalog';
 import type { Part } from '../../types/catalog.types';
 
 export function PartsView() {
-  const { items, page, totalPages, loading, usingMock, filters, setFilters, setPage, save, remove } = useParts();
+  const { items, page, totalPages, loading, error, filters, setFilters, setPage, save, remove } = useParts();
   const [editing, setEditing] = useState<Part | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Part | null>(null);
@@ -41,7 +41,7 @@ export function PartsView() {
         }
       />
       <CatalogTabs />
-      <MockBanner visible={usingMock} />
+      <ErrorBanner message={error} />
 
       <Card className="mb-4">
         <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">

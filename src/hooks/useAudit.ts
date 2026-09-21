@@ -1,27 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { listAuditEvents, type AuditQuery } from '../api/audit.api';
+import { errorMessage } from '../api/client';
 import type { AuditEvent } from '../types/audit.types';
-import { MOCK_AUDIT_EVENTS } from '../lib/mockAudit';
 import { DEFAULT_PAGE_SIZE } from '../lib/constants';
 
-function filterMock(events: AuditEvent[], q: AuditQuery): AuditEvent[] {
-  const actor = q.actor?.toLowerCase();
-  return events.filter((e) => {
-    if (q.action && e.action !== q.action) return false;
-    if (q.entityType && e.entityType !== q.entityType) return false;
-    if (actor && !e.actorName.toLowerCase().includes(actor)) return false;
-    if (q.from && e.occurredAt < `${q.from}T00:00:00`) return false;
-    if (q.to && e.occurredAt > `${q.to}T23:59:59`) return false;
-    return true;
-  });
-}
-
+// Timeline de auditoría (ms-tallerpro-audit vía gateway).
 export function useAudit(initialQuery: AuditQuery = {}) {
   const [query, setQuery] = useState<AuditQuery>({ size: DEFAULT_PAGE_SIZE, page: 0, ...initialQuery });
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [usingMock, setUsingMock] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -29,9 +18,9 @@ export function useAudit(initialQuery: AuditQuery = {}) {
       const result = await listAuditEvents(query);
       setEvents(result.content);
       setTotalPages(result.totalPages);
-      setUsingMock(false);
-    } catch {
-      setUsingMock(true);
+      setError(null);
+    } catch (err) {
+      setError(errorMessage(err, 'No pudimos cargar la auditoría.'));
     } finally {
       setLoading(false);
     }
@@ -40,16 +29,6 @@ export function useAudit(initialQuery: AuditQuery = {}) {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
-
-  const mockPage = useMemo(() => {
-    const filtered = filterMock(MOCK_AUDIT_EVENTS, query);
-    const size = query.size ?? DEFAULT_PAGE_SIZE;
-    const page = query.page ?? 0;
-    return {
-      content: filtered.slice(page * size, page * size + size),
-      totalPages: Math.max(1, Math.ceil(filtered.length / size)),
-    };
-  }, [query]);
 
   function setFilters(filters: Partial<Omit<AuditQuery, 'page' | 'size'>>) {
     setQuery((q) => ({ ...q, ...filters, page: 0 }));
@@ -60,11 +39,12 @@ export function useAudit(initialQuery: AuditQuery = {}) {
   }
 
   return {
-    events: usingMock ? mockPage.content : events,
+    events,
     page: query.page ?? 0,
-    totalPages: usingMock ? mockPage.totalPages : totalPages,
+    totalPages,
     loading,
-    usingMock,
+    error,
+    usingMock: false,
     filters: query,
     setFilters,
     setPage,

@@ -9,6 +9,8 @@ interface ImportMetaEnv {
   readonly PUBLIC_API_SCOPE: string;
   readonly PUBLIC_ENABLE_AUDIT: string;
   readonly PUBLIC_ENABLE_REPORTS: string;
+  /** JSON: [{"id":"<uuid>","name":"Providencia"}, ...] */
+  readonly PUBLIC_WORKSHOPS?: string;
 }
 
 interface ImportMeta {

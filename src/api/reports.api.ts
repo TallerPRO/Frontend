@@ -6,25 +6,84 @@ import type {
   ReportPeriod,
   RevenueByWorkshop,
 } from '../types/report.types';
+import type { OrderStatus } from '../types/order.types';
+import { workshopName } from '../lib/workshops';
+import { getBaysSummary } from './bays.api';
+
+// Adaptador hacia ms-tallerpro-report (vía gateway): /api/report/kpis.
+// El backend calcula órdenes por hora, tiempo de permanencia y órdenes activas por
+// estado (alimentado por Kafka). Lo que el backend NO calcula (ingresos, desempeño
+// por mecánico) se devuelve vacío/0 y las vistas muestran su estado vacío.
+
+interface OrdersPerHour { tallerId: string; orders: number; windowStart: string; windowEnd: string }
+interface DwellTime { tallerId: string; avgMinutes: number; completedOrders: number }
+interface ActiveOrdersByStatus { tallerId: string; countByStatus: Record<string, number>; totalActive: number }
+interface OperationsPanel {
+  generatedAt: string;
+  ordersPerHour: OrdersPerHour[];
+  dwellTime: DwellTime[];
+  activeOrders: ActiveOrdersByStatus[];
+}
+
+const KPIS = '/api/report/kpis';
+const ALL_STATUSES: OrderStatus[] = ['RECEPCIONADA', 'DIAGNOSTICADA', 'EN_REPARACION', 'LISTA_RETIRO', 'ENTREGADA', 'ANULADA'];
+
+function avg(values: number[]): number {
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
 
 export async function getOrdersSummary(workshopId?: string): Promise<OrdersSummaryReport> {
-  const { data } = await apiClient.get<OrdersSummaryReport>('/api/reports/orders/summary', {
-    params: { workshopId },
-  });
-  return data;
+  const [{ data: panel }, bays] = await Promise.all([
+    apiClient.get<OperationsPanel>(KPIS, { params: { tallerId: workshopId } }),
+    workshopId ? getBaysSummary(workshopId).catch(() => null) : Promise.resolve(null),
+  ]);
+
+  const byStatus: Record<string, number> = {};
+  for (const t of panel.activeOrders) {
+    for (const [status, count] of Object.entries(t.countByStatus)) {
+      byStatus[status] = (byStatus[status] ?? 0) + count;
+    }
+  }
+
+  const dwellDays = avg(panel.dwellTime.filter((d) => d.completedOrders > 0).map((d) => d.avgMinutes / 1440));
+
+  return {
+    activeOrders: panel.activeOrders.reduce((sum, t) => sum + t.totalActive, 0),
+    activeOrdersChangePercent: 0,
+    occupiedBays: bays?.ocupadas ?? 0,
+    totalBays: bays?.total ?? 0,
+    occupiedBaysChangePercent: 0,
+    avgRepairDays: Math.round(dwellDays * 10) / 10,
+    avgRepairDaysChangePercent: 0,
+    monthRevenue: 0,
+    monthRevenueChangePercent: 0,
+    ordersByStatus: ALL_STATUSES.map((status) => ({ status, count: byStatus[status] ?? 0 })),
+    ordersTrend: panel.ordersPerHour.map((w) => ({
+      date: new Date(w.windowEnd).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }),
+      count: w.orders,
+    })),
+    workshopLoad: panel.activeOrders.map((t) => ({ workshopName: workshopName(t.tallerId), activeOrders: t.totalActive })),
+  };
 }
 
-export async function getRevenueByWorkshop(period: ReportPeriod): Promise<RevenueByWorkshop[]> {
-  const { data } = await apiClient.get<RevenueByWorkshop[]>('/api/reports/revenue', { params: period });
-  return data;
+/** Ingresos por taller: sin fuente en el backend todavía (jobs no lleva montos). */
+export async function getRevenueByWorkshop(_period: ReportPeriod): Promise<RevenueByWorkshop[]> {
+  return [];
 }
 
+/** Tiempo de permanencia promedio por taller (desde `from`), en días. */
 export async function getRepairTime(period: ReportPeriod): Promise<RepairTimeDatum[]> {
-  const { data } = await apiClient.get<RepairTimeDatum[]>('/api/reports/repair-time', { params: period });
-  return data;
+  const { data } = await apiClient.get<DwellTime[]>(`${KPIS}/dwell-time`, {
+    params: { tallerId: period.workshopId, since: `${period.from}T00:00:00Z` },
+  });
+  return data.map((d) => ({
+    month: workshopName(d.tallerId),
+    avgDays: Math.round((d.avgMinutes / 1440) * 10) / 10,
+    target: 3,
+  }));
 }
 
-export async function getMechanicPerformance(period: ReportPeriod): Promise<MechanicPerformance[]> {
-  const { data } = await apiClient.get<MechanicPerformance[]>('/api/reports/mechanics', { params: period });
-  return data;
+/** Desempeño por mecánico: sin fuente en el backend todavía. */
+export async function getMechanicPerformance(_period: ReportPeriod): Promise<MechanicPerformance[]> {
+  return [];
 }

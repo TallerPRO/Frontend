@@ -2,6 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { DEFAULT_WORKSHOP_ID, WORKSHOP_OPTIONS } from '../../lib/workshops';
 import { Button } from '../ui/Button';
 import { Card, CardHeader, CardTitle } from '../ui/Card';
 import type { CreateOrderDTO } from '../../types/order.types';
@@ -40,7 +42,10 @@ export function CreateOrderForm({ onSubmit, submitting }: CreateOrderFormProps) 
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormInput, unknown, FormOutput>({ resolver: zodResolver(schema) });
+  } = useForm<FormInput, unknown, FormOutput>({
+    resolver: zodResolver(schema),
+    defaultValues: { workshopId: DEFAULT_WORKSHOP_ID },
+  });
 
   async function handleFormSubmit(values: FormOutput) {
     await onSubmit({ ...values, services: [], parts: [] });
@@ -54,7 +59,7 @@ export function CreateOrderForm({ onSubmit, submitting }: CreateOrderFormProps) 
         </CardHeader>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Patente" placeholder="AB1234" error={errors.vehiclePlate?.message} {...register('vehiclePlate')} />
-          <Input label="Taller" placeholder="ID de taller" error={errors.workshopId?.message} {...register('workshopId')} />
+          <Select label="Taller" options={WORKSHOP_OPTIONS} error={errors.workshopId?.message} {...register('workshopId')} />
           <Input label="Marca" placeholder="Toyota" error={errors.vehicleBrand?.message} {...register('vehicleBrand')} />
           <Input label="Modelo" placeholder="Yaris" error={errors.vehicleModel?.message} {...register('vehicleModel')} />
           <Input

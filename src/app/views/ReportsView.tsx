@@ -1,7 +1,7 @@
 import { Download } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { MockBanner } from '../../components/ui/MockBanner';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Spinner } from '../../components/ui/Spinner';
 import { ReportFilters } from '../../components/reports/ReportFilters';
 import { RevenueByWorkshopChart } from '../../components/reports/RevenueByWorkshopChart';
@@ -11,7 +11,7 @@ import { useReports } from '../../hooks/useReports';
 import { downloadCsv } from '../../lib/csv';
 
 export function ReportsView() {
-  const { period, setPeriod, revenue, repairTime, mechanics, loading, usingMock } = useReports();
+  const { period, setPeriod, revenue, repairTime, mechanics, loading, error } = useReports();
 
   function exportCsv() {
     downloadCsv(
@@ -33,7 +33,7 @@ export function ReportsView() {
           </Button>
         }
       />
-      <MockBanner visible={usingMock} />
+      <ErrorBanner message={error} />
       <ReportFilters period={period} onChange={setPeriod} />
 
       {loading && revenue.length === 0 ? (

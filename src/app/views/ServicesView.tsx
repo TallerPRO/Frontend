@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
-import { MockBanner } from '../../components/ui/MockBanner';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { CatalogTabs } from '../../components/catalog/CatalogTabs';
 import { ServiceTable } from '../../components/catalog/ServiceTable';
@@ -19,7 +19,7 @@ const CATEGORY_OPTIONS = (Object.keys(SERVICE_CATEGORY_LABELS) as ServiceCategor
 }));
 
 export function ServicesView() {
-  const { items, page, totalPages, loading, usingMock, filters, setFilters, setPage, save, remove } = useServices();
+  const { items, page, totalPages, loading, error, filters, setFilters, setPage, save, remove } = useServices();
   const [editing, setEditing] = useState<Service | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Service | null>(null);
@@ -47,7 +47,7 @@ export function ServicesView() {
         }
       />
       <CatalogTabs />
-      <MockBanner visible={usingMock} />
+      <ErrorBanner message={error} />
 
       <Card className="mb-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

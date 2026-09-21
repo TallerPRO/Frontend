@@ -5,24 +5,26 @@ import { OrdersByStatusChart } from '../../components/dashboard/OrdersByStatusCh
 import { OrdersTrendChart } from '../../components/dashboard/OrdersTrendChart';
 import { WorkshopLoadBar } from '../../components/dashboard/WorkshopLoadBar';
 import { RecentOrdersFeed } from '../../components/dashboard/RecentOrdersFeed';
-import { MockBanner } from '../../components/ui/MockBanner';
+import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { Spinner } from '../../components/ui/Spinner';
 import { formatCurrency } from '../../lib/formatters';
 import { useOrdersSummary } from '../../hooks/useReports';
-import { MOCK_RECENT_ORDERS } from '../../lib/mockDashboard';
+import { useOrders } from '../../hooks/useOrders';
+import { useNavigate } from 'react-router-dom';
 
 const days = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 });
 
-// KPIs y gráficos vienen de /api/reports/orders/summary (con fallback a
-// datos de muestra). El feed de órdenes recientes sigue en mock hasta que
-// el BFF exponga un listado ordenado por fecha.
+// KPIs y gráficos vienen de ms-tallerpro-report (/api/report/kpis) y el feed
+// de órdenes recientes de ms-tallerpro-jobs, ambos vía gateway.
 export function DashboardView() {
-  const { summary, loading, usingMock } = useOrdersSummary();
+  const navigate = useNavigate();
+  const { summary, loading, error } = useOrdersSummary();
+  const { orders: recentOrders } = useOrders({ size: 5 });
 
   return (
     <>
       <PageHeader title="Dashboard" description="Resumen operativo de la red de talleres" />
-      <MockBanner visible={usingMock} />
+      <ErrorBanner message={error} />
 
       {loading || !summary ? (
         <div className="flex justify-center py-16">
@@ -64,7 +66,7 @@ export function DashboardView() {
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <WorkshopLoadBar data={summary.workshopLoad} />
-            <RecentOrdersFeed orders={MOCK_RECENT_ORDERS} />
+            <RecentOrdersFeed orders={recentOrders} onSelect={(order) => navigate(`/orders/${order.id}`)} />
           </div>
         </>
       )}
