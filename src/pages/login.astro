@@ -1,6 +1,6 @@
 ---
 import '../styles/global.css';
-import { LoginCardDemo } from '../components/auth/LoginCardDemo';
+import { LoginPage } from '../components/auth/LoginPage';
 ---
 
 <!doctype html>
@@ -12,8 +12,6 @@ import { LoginCardDemo } from '../components/auth/LoginCardDemo';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body class="bg-navy-900">
-    <!-- LoginCardDemo es temporal: navega directo al dashboard sin login real.
-         Reemplazar por <LoginCard client:load onLogin={...} .../> al integrar MSAL. -->
-    <LoginCardDemo client:load />
+    <LoginPage client:only="react" />
   </body>
 </html>

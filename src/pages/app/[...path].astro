@@ -6,9 +6,20 @@ import App from '../../app/App';
 
 export const prerender = true;
 export function getStaticPaths() {
-  // Astro necesita al menos una ruta estática para [...path] en output "static".
-  // El resto de las rutas /app/* las resuelve React Router en el cliente.
-  return [{ params: { path: undefined } }];
+  // En output "static", Astro genera un HTML por cada path listado aquí.
+  // Todos renderizan el mismo shell de React; React Router maneja el routing interno.
+  return [
+    { params: { path: undefined } },          // /app
+    { params: { path: 'dashboard' } },        // /app/dashboard
+    { params: { path: 'orders' } },           // /app/orders
+    { params: { path: 'orders/new' } },       // /app/orders/new
+    { params: { path: 'bays' } },             // /app/bays
+    { params: { path: 'catalog/services' } }, // /app/catalog/services
+    { params: { path: 'catalog/parts' } },    // /app/catalog/parts
+    { params: { path: 'reports' } },          // /app/reports
+    { params: { path: 'audit' } },            // /app/audit
+    { params: { path: 'profile' } },          // /app/profile
+  ];
 }
 ---
 
