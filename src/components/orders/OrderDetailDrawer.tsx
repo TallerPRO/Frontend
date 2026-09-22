@@ -18,9 +18,11 @@ interface OrderDetailDrawerProps {
   timeline: OrderTimelineEntry[];
   loading?: boolean;
   onChangeStatus: (status: OrderStatus, notes: string) => Promise<void> | void;
+  /** Abre el modal de diagnóstico (productos, servicios y nota) en vez del genérico. */
+  onRequestDiagnosis?: () => void;
 }
 
-export function OrderDetailDrawer({ open, onClose, order, timeline, loading, onChangeStatus }: OrderDetailDrawerProps) {
+export function OrderDetailDrawer({ open, onClose, order, timeline, loading, onChangeStatus, onRequestDiagnosis }: OrderDetailDrawerProps) {
   const [visible, setVisible] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | null>(null);
 
@@ -88,7 +90,16 @@ export function OrderDetailDrawer({ open, onClose, order, timeline, loading, onC
 
             {nextStatus && (
               <div className="flex justify-end">
-                <Button onClick={() => setPendingStatus(nextStatus)}>
+                <Button
+                  onClick={() =>
+                    // Diagnosticar no es un simple cambio de estado: pide los
+                    // productos y servicios del catálogo, así que lo resuelve
+                    // su propio modal en la vista.
+                    nextStatus === 'DIAGNOSTICADA' && onRequestDiagnosis
+                      ? onRequestDiagnosis()
+                      : setPendingStatus(nextStatus)
+                  }
+                >
                   Avanzar a {ORDER_STATUS_LABELS[nextStatus]}
                 </Button>
               </div>
@@ -104,8 +115,8 @@ export function OrderDetailDrawer({ open, onClose, order, timeline, loading, onC
                 <dd className="text-gray-200">{order.assignedMechanicName ?? '—'}</dd>
               </div>
               <div>
-                <dt className="text-xs text-gray-500">Costo estimado</dt>
-                <dd className="text-gray-200">{formatCurrency(order.estimatedCost)}</dd>
+                <dt className="text-xs text-gray-500">Total a cobrar</dt>
+                <dd className="font-semibold text-gray-100">{formatCurrency(order.total)}</dd>
               </div>
               <div>
                 <dt className="text-xs text-gray-500">Recepción</dt>
@@ -118,6 +129,34 @@ export function OrderDetailDrawer({ open, onClose, order, timeline, loading, onC
                 </div>
               )}
             </dl>
+
+            {(order.services.length > 0 || order.parts.length > 0) && (
+              <div>
+                <h3 className="mb-3 text-sm font-semibold text-gray-100">Detalle a cobrar</h3>
+                <ul className="flex flex-col gap-1 rounded-lg border border-white/10 p-4 text-sm">
+                  {order.services.map((s) => (
+                    <li key={s.serviceId} className="flex justify-between gap-3">
+                      <span className="text-gray-300">
+                        {s.serviceName} <span className="text-gray-500">x{s.quantity}</span>
+                      </span>
+                      <span className="text-gray-200">{formatCurrency(s.subtotal)}</span>
+                    </li>
+                  ))}
+                  {order.parts.map((p) => (
+                    <li key={p.partId} className="flex justify-between gap-3">
+                      <span className="text-gray-300">
+                        {p.partName} <span className="text-gray-500">x{p.quantity}</span>
+                      </span>
+                      <span className="text-gray-200">{formatCurrency(p.subtotal)}</span>
+                    </li>
+                  ))}
+                  <li className="mt-2 flex justify-between gap-3 border-t border-white/10 pt-2">
+                    <span className="font-medium text-gray-200">Total</span>
+                    <span className="font-semibold text-gray-100">{formatCurrency(order.total)}</span>
+                  </li>
+                </ul>
+              </div>
+            )}
 
             <div>
               <h3 className="mb-3 text-sm font-semibold text-gray-100">Historial</h3>

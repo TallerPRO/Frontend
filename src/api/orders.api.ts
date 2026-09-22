@@ -31,7 +31,10 @@ export interface OrdenServicioResponse {
   mecanicoId: string | null;
   mecanicoNombre: string | null;
   bahiaId: string | null;
-  repuestosUtilizados: { repuestoId: string; nombre: string; cantidad: number }[];
+  repuestosUtilizados: { repuestoId: string; nombre: string; cantidad: number; precioUnitario: number | null; subtotal: number }[];
+  serviciosAplicados: { servicioId: string; nombre: string; cantidad: number; precioUnitario: number | null; subtotal: number }[];
+  /** Monto a cobrar que calcula jobs con los precios del catálogo. */
+  total: number | null;
   motivoAnulacion: string | null;
   fechaCreacion: string;
   fechaActualizacion: string;
@@ -59,16 +62,26 @@ export function toOrder(o: OrdenServicioResponse): Order {
     assignedMechanicId: o.mecanicoId ?? undefined,
     assignedMechanicName: o.mecanicoNombre ?? undefined,
     status: o.estado,
-    services: [],
+    bayId: o.bahiaId ?? undefined,
+    services: (o.serviciosAplicados ?? []).map((s) => ({
+      serviceId: s.servicioId,
+      serviceName: s.nombre,
+      price: s.precioUnitario ?? 0,
+      quantity: s.cantidad ?? 1,
+      subtotal: s.subtotal ?? 0,
+    })),
     parts: (o.repuestosUtilizados ?? []).map((r) => ({
       partId: r.repuestoId,
       partName: r.nombre,
       partNumber: '',
-      unitPrice: 0,
+      unitPrice: r.precioUnitario ?? 0,
       quantity: r.cantidad ?? 1,
+      subtotal: r.subtotal ?? 0,
     })),
     diagnosisNotes: o.diagnostico ?? undefined,
-    estimatedCost: 0,
+    // El monto lo calcula jobs con los precios del catálogo; el front solo lo muestra.
+    estimatedCost: o.total ?? 0,
+    total: o.total ?? 0,
     receivedAt: o.fechaCreacion,
     deliveredAt: o.fechaEntrega ?? undefined,
     createdBy: '',
@@ -140,10 +153,19 @@ export async function createOrder(dto: CreateOrderDTO): Promise<Order> {
     clienteId: await uuidFromString(dto.clientEmail),
     clienteNombre: dto.clientName,
     clienteContacto: dto.clientEmail,
+    clienteTelefono: dto.clientPhone,
     vehiculoPatente: dto.vehiclePlate,
     vehiculoMarca: dto.vehicleBrand,
     vehiculoModelo: dto.vehicleModel,
     vehiculoAnio: dto.vehicleYear,
+    // jobs reserva la bahía en catalog dentro de la misma operación: si no
+    // puede, no crea la orden (no queremos vehículos recepcionados sin puesto).
+    bahiaId: dto.bayId,
+    // El mecánico queda asignado desde la recepción; su correo se guarda para
+    // avisarle cuando la orden pase a reparación y el vehículo entre a la bahía.
+    mecanicoId: dto.mechanicId,
+    mecanicoNombre: dto.mechanicName,
+    mecanicoContacto: dto.mechanicEmail,
   });
   return toOrder(data);
 }
@@ -154,9 +176,11 @@ export async function updateOrderStatus(id: string, dto: UpdateOrderStatusDTO): 
   let response: OrdenServicioResponse;
   switch (dto.status) {
     case 'DIAGNOSTICADA':
+      // Sin ítems: el camino normal es diagnose(), que además deja el cobro.
       response = (await apiClient.post<OrdenServicioResponse>(`${BASE}/${id}/diagnostico`, {
         diagnostico: notes || 'Diagnóstico registrado desde la aplicación',
         repuestos: [],
+        servicios: [],
       })).data;
       break;
     case 'EN_REPARACION':
@@ -189,12 +213,35 @@ export async function cancelOrder(id: string, reason = 'Anulada desde la aplicac
 /** RF-06: asigna mecánico y bahía (jobs reserva la bahía en catalog). */
 export async function assignResources(
   id: string,
-  body: { mechanicId: string; mechanicName?: string; bayId: string },
+  body: { mechanicId: string; mechanicName?: string; mechanicEmail?: string; bayId: string },
 ): Promise<Order> {
   const { data } = await apiClient.post<OrdenServicioResponse>(`${BASE}/${id}/asignacion`, {
     mecanicoId: body.mechanicId,
     mecanicoNombre: body.mechanicName,
+    // Con el correo, notify le avisa al mecánico en qué bahía tiene trabajo.
+    mecanicoContacto: body.mechanicEmail,
     bahiaId: body.bayId,
+  });
+  return toOrder(data);
+}
+
+/**
+ * Paso a DIAGNOSTICADA: la nota del diagnóstico y los productos y servicios que
+ * lleva el trabajo. Solo se envían ids y cantidades; los precios y el total los
+ * pone jobs con la lista del catálogo.
+ */
+export async function diagnose(
+  id: string,
+  body: {
+    diagnosis: string;
+    parts: { partId: string; quantity: number }[];
+    services: { serviceId: string; quantity: number }[];
+  },
+): Promise<Order> {
+  const { data } = await apiClient.post<OrdenServicioResponse>(`${BASE}/${id}/diagnostico`, {
+    diagnostico: body.diagnosis,
+    repuestos: body.parts.map((p) => ({ repuestoId: p.partId, cantidad: p.quantity })),
+    servicios: body.services.map((s) => ({ servicioId: s.serviceId, cantidad: s.quantity })),
   });
   return toOrder(data);
 }

@@ -13,11 +13,13 @@ export type Section =
   | 'catalog'
   | 'reports'
   | 'audit'
-  | 'users';
+  | 'users'
+  | 'settings';
 
 // Mapa de acceso a secciones por rol
 export const ROLE_PERMISSIONS: Record<Role, Section[]> = {
-  [Role.ADMIN]: ['dashboard', 'orders', 'bays', 'catalog', 'reports', 'audit', 'users'],
+  // 'settings' solo para Admin: catalog exige rol Admin en el alta/edición de bahías.
+  [Role.ADMIN]: ['dashboard', 'orders', 'bays', 'catalog', 'reports', 'audit', 'users', 'settings'],
   [Role.JEFE_TALLER]: ['dashboard', 'orders', 'bays', 'catalog', 'reports'],
   [Role.MECANICO]: ['dashboard', 'orders', 'bays'],
   [Role.CLIENTE]: ['orders'],

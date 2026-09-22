@@ -9,6 +9,7 @@ import { PartsView } from './views/PartsView';
 import { ReportsView } from './views/ReportsView';
 import { AuditView } from './views/AuditView';
 import { ProfileView } from './views/ProfileView';
+import { SettingsView } from './views/SettingsView';
 
 export interface RouteConfig {
   path: string;
@@ -27,5 +28,6 @@ export const routes: RouteConfig[] = [
   { path: '/catalog/parts', element: <PartsView /> },
   { path: '/reports', element: <ReportsView /> },
   { path: '/audit', element: <AuditView /> },
+  { path: '/settings', element: <SettingsView /> },
   { path: '/profile', element: <ProfileView /> },
 ];

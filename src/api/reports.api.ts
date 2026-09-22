@@ -32,10 +32,37 @@ function avg(values: number[]): number {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0;
 }
 
+/**
+ * Ingresos: suma de los totales de las órdenes ENTREGADAS, que es cuando el
+ * trabajo se cobra. El monto sale de jobs (única fuente del total, calculado
+ * con los precios del catálogo); report todavía no lo propaga por Kafka.
+ */
+async function revenueFromDeliveredOrders(workshopId?: string): Promise<{ month: number; previousMonth: number }> {
+  const { data } = await apiClient.get<{ total: number | null; fechaEntrega: string | null }[]>('/api/v1/ordenes', {
+    params: { tallerId: workshopId, estado: 'ENTREGADA' },
+  });
+
+  const now = new Date();
+  const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
+  const thisMonth = monthKey(now);
+  const prevMonth = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  let month = 0;
+  let previousMonth = 0;
+  for (const orden of data) {
+    if (!orden.fechaEntrega) continue;
+    const key = monthKey(new Date(orden.fechaEntrega));
+    if (key === thisMonth) month += orden.total ?? 0;
+    else if (key === prevMonth) previousMonth += orden.total ?? 0;
+  }
+  return { month, previousMonth };
+}
+
 export async function getOrdersSummary(workshopId?: string): Promise<OrdersSummaryReport> {
-  const [{ data: panel }, bays] = await Promise.all([
+  const [{ data: panel }, bays, revenue] = await Promise.all([
     apiClient.get<OperationsPanel>(KPIS, { params: { tallerId: workshopId } }),
     workshopId ? getBaysSummary(workshopId).catch(() => null) : Promise.resolve(null),
+    revenueFromDeliveredOrders(workshopId).catch(() => ({ month: 0, previousMonth: 0 })),
   ]);
 
   const byStatus: Record<string, number> = {};
@@ -55,8 +82,10 @@ export async function getOrdersSummary(workshopId?: string): Promise<OrdersSumma
     occupiedBaysChangePercent: 0,
     avgRepairDays: Math.round(dwellDays * 10) / 10,
     avgRepairDaysChangePercent: 0,
-    monthRevenue: 0,
-    monthRevenueChangePercent: 0,
+    monthRevenue: revenue.month,
+    monthRevenueChangePercent: revenue.previousMonth
+      ? Math.round(((revenue.month - revenue.previousMonth) / revenue.previousMonth) * 100)
+      : 0,
     ordersByStatus: ALL_STATUSES.map((status) => ({ status, count: byStatus[status] ?? 0 })),
     ordersTrend: panel.ordersPerHour.map((w) => ({
       date: new Date(w.windowEnd).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' }),

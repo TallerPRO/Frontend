@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import {
   cancelOrder,
   createOrder,
+  diagnose,
   getOrder,
   getOrderTimeline,
   listOrders,
@@ -93,10 +94,30 @@ export function useOrder(id: string | undefined) {
     const updated = await updateOrderStatus(id, dto);
     setOrder(updated);
     await fetchOrder();
-    toast.success('Estado de la orden actualizado');
+    // Cada transición tiene un efecto que conviene confirmar en pantalla,
+    // porque ocurre en el backend (bahía y correos) y no se ve desde aquí.
+    const mensajes: Partial<Record<UpdateOrderStatusDTO['status'], string>> = {
+      EN_REPARACION: 'En reparación: bahía ocupada y aviso enviado al mecánico',
+      LISTA_RETIRO: 'Lista para retiro: se avisó al cliente y se liberó la bahía',
+      ENTREGADA: 'Entregada: el total se suma a los ingresos',
+    };
+    toast.success(mensajes[dto.status] ?? 'Estado de la orden actualizado');
   }
 
-  return { order, timeline, loading, error, changeStatus, refetch: fetchOrder };
+  /** Diagnóstico: nota + productos y servicios del catálogo, con su total. */
+  async function registerDiagnosis(body: {
+    diagnosis: string;
+    parts: { partId: string; quantity: number }[];
+    services: { serviceId: string; quantity: number }[];
+  }) {
+    if (!id) return;
+    const updated = await diagnose(id, body);
+    setOrder(updated);
+    await fetchOrder();
+    toast.success('Diagnóstico registrado');
+  }
+
+  return { order, timeline, loading, error, changeStatus, diagnose: registerDiagnosis, refetch: fetchOrder };
 }
 
 export function useCreateOrder() {

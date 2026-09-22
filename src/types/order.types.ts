@@ -23,11 +23,14 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   ANULADA: 'Anulada',
 };
 
+// Ítems cobrables de la orden. Los precios los congela ms-tallerpro-jobs al
+// aplicarlos, tomándolos del catálogo: el front nunca los calcula ni los envía.
 export interface OrderService {
   serviceId: string;
   serviceName: string;
-  unitPrice: number;
+  price: number;
   quantity: number;
+  subtotal: number;
 }
 
 export interface OrderPart {
@@ -36,6 +39,7 @@ export interface OrderPart {
   partNumber: string;
   unitPrice: number;
   quantity: number;
+  subtotal: number;
 }
 
 export interface Order {
@@ -53,10 +57,14 @@ export interface Order {
   assignedMechanicId?: string;
   assignedMechanicName?: string;
   status: OrderStatus;
+  /** Bahía reservada para el vehículo (RF-06). */
+  bayId?: string;
   services: OrderService[];
   parts: OrderPart[];
   diagnosisNotes?: string;
   estimatedCost: number;
+  /** Monto a cobrar: repuestos + servicios, calculado por el backend. */
+  total: number;
   finalCost?: number;
   receivedAt: string; // ISO 8601
   estimatedDelivery?: string;
@@ -67,6 +75,13 @@ export interface Order {
 
 export interface CreateOrderDTO {
   workshopId: string;
+  /** Bahía que se reserva al recepcionar el vehículo (obligatoria en recepción). */
+  bayId: string;
+  /** Mecánico a cargo, elegido del equipo del taller (obligatorio en recepción). */
+  mechanicId: string;
+  mechanicName: string;
+  mechanicEmail: string;
+  clientPhone: string;
   vehiclePlate: string;
   vehicleBrand: string;
   vehicleModel: string;

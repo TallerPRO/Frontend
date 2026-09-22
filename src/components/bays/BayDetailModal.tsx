@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
@@ -5,16 +7,17 @@ import type { Bay } from '../../types/bay.types';
 import { formatDateTime, formatPlate } from '../../lib/formatters';
 import { BayCarIcon } from './BayCarIcon';
 
+// El estado de la bahía NO se cambia desde aquí: lo mueve el avance de la orden
+// (pasar a reparación la ocupa, lista para retiro la libera). Esta vista solo
+// muestra qué hay en cada puesto y lleva a la orden correspondiente.
 interface BayDetailModalProps {
   open: boolean;
   onClose: () => void;
   bay: Bay | null;
-  onCancelReservation: () => void;
-  onCheckIn: () => void;
-  onRelease: () => void;
 }
 
-export function BayDetailModal({ open, onClose, bay, onCancelReservation, onCheckIn, onRelease }: BayDetailModalProps) {
+export function BayDetailModal({ open, onClose, bay }: BayDetailModalProps) {
+  const navigate = useNavigate();
   if (!bay) return null;
 
   return (
@@ -38,12 +41,10 @@ export function BayDetailModal({ open, onClose, bay, onCancelReservation, onChec
             <Field label="Reservada por" value={bay.assignment.reservedBy} />
             <Field label="Mecánico" value={bay.assignment.mechanicName ?? '—'} />
           </dl>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={onCancelReservation}>
-              Cancelar reserva
-            </Button>
-            <Button onClick={onCheckIn}>Confirmar ingreso</Button>
-          </div>
+          <p className="text-xs text-gray-400">
+            La bahía se ocupa cuando la orden pasa a «En reparación».
+          </p>
+          <OpenOrderButton orderId={bay.assignment.orderId} onNavigate={navigate} onClose={onClose} />
         </div>
       )}
 
@@ -64,12 +65,38 @@ export function BayDetailModal({ open, onClose, bay, onCancelReservation, onChec
               />
             </div>
           )}
-          <div className="flex justify-end gap-2">
-            <Button onClick={onRelease}>Liberar bahía</Button>
-          </div>
+          <p className="text-xs text-gray-400">
+            La bahía se libera cuando la orden pasa a «Lista para retiro».
+          </p>
+          <OpenOrderButton orderId={bay.assignment.orderId} onNavigate={navigate} onClose={onClose} />
         </div>
       )}
     </Modal>
+  );
+}
+
+/** Único camino para actuar sobre la bahía: ir a la orden que la ocupa. */
+function OpenOrderButton({
+  orderId,
+  onNavigate,
+  onClose,
+}: {
+  orderId: string;
+  onNavigate: (to: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex justify-end">
+      <Button
+        onClick={() => {
+          onClose();
+          onNavigate(`/orders/${orderId}`);
+        }}
+      >
+        Ver la orden
+        <ArrowRight className="h-4 w-4" aria-hidden />
+      </Button>
+    </div>
   );
 }
 

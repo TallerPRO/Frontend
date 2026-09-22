@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import { cancelReservation, checkInBay, getBaysSummary, listBays, releaseBay } from '../api/bays.api';
+import { getBaysSummary, listBays } from '../api/bays.api';
 import { errorMessage } from '../api/client';
-import type { Bay, BayOccupancySummary, CancelReservationReason } from '../types/bay.types';
+import type { Bay, BayOccupancySummary } from '../types/bay.types';
 
 const REFETCH_INTERVAL_MS = 30_000;
 
@@ -36,23 +35,6 @@ export function useBays(workshopId?: string) {
     return () => clearInterval(intervalRef.current);
   }, [fetchAll]);
 
-  async function cancel(bayId: string, reservationId: string, reason: CancelReservationReason, comment?: string) {
-    await cancelReservation(bayId, reservationId, { reason, comment }, workshopId);
-    toast.success('Reserva cancelada');
-    await fetchAll(true);
-  }
-
-  async function checkIn(bayId: string) {
-    await checkInBay(bayId, workshopId);
-    toast.success('Vehículo ingresado a la bahía');
-    await fetchAll(true);
-  }
-
-  async function release(bayId: string) {
-    await releaseBay(bayId, workshopId);
-    toast.success('Bahía liberada');
-    await fetchAll(true);
-  }
-
-  return { bays, summary, loading, error, usingMock: false, refetch: () => fetchAll(true), cancel, checkIn, release };
+  // Sin acciones de estado: la bahía la mueve el avance de la orden.
+  return { bays, summary, loading, error, usingMock: false, refetch: () => fetchAll(true) };
 }

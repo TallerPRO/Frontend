@@ -12,6 +12,14 @@ export interface Bay {
   status: BayStatus;
   freeSince: string | null; // ISO — solo cuando status === 'DISPONIBLE'
   assignment: BayAssignment | null; // presente en RESERVADA y OCUPADA
+  active: boolean; // desactivada = fuera de servicio, no se ofrece para reservas
+}
+
+// Alta/edición de una bahía desde Configuración (catalog: BahiaRequest).
+export interface BayDTO {
+  code: string;
+  sector: string;
+  active: boolean;
 }
 
 // Datos que se muestran en el modal cuando la bahía NO está disponible.

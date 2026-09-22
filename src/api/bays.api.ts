@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Bay, BayAssignment, BayOccupancySummary, CancelReservationReason } from '../types/bay.types';
+import type { Bay, BayAssignment, BayDTO, BayOccupancySummary, CancelReservationReason } from '../types/bay.types';
 import { DEFAULT_WORKSHOP_ID } from '../lib/workshops';
 import { toOrder, type OrdenServicioResponse } from './orders.api';
 
@@ -75,6 +75,7 @@ async function toBay(b: BahiaResponse, cache: Map<string, Promise<OrdenServicioR
     status: b.estado,
     freeSince: b.estado === 'DISPONIBLE' ? b.libreDesde : null,
     assignment: await buildAssignment(b, cache),
+    active: b.activa,
   };
 }
 
@@ -82,6 +83,38 @@ export async function listBays(workshopId?: string): Promise<Bay[]> {
   const { data } = await apiClient.get<BahiaResponse[]>(base(workshopId));
   const cache = new Map<string, Promise<OrdenServicioResponse | null>>();
   return Promise.all(data.filter((b) => b.activa).map((b) => toBay(b, cache)));
+}
+
+// Configuración: incluye las bahías desactivadas, que la vista operativa oculta.
+export async function listAllBays(workshopId?: string): Promise<Bay[]> {
+  const { data } = await apiClient.get<BahiaResponse[]>(base(workshopId));
+  const cache = new Map<string, Promise<OrdenServicioResponse | null>>();
+  return Promise.all(data.map((b) => toBay(b, cache)));
+}
+
+// --- Administración de bahías (catalog exige rol Admin) ---------------------
+
+export async function createBay(dto: BayDTO, workshopId?: string): Promise<Bay> {
+  const { data } = await apiClient.post<BahiaResponse>(base(workshopId), {
+    codigo: dto.code,
+    sector: dto.sector,
+    activa: dto.active,
+  });
+  return toBay(data, new Map());
+}
+
+export async function updateBay(id: string, dto: BayDTO, workshopId?: string): Promise<Bay> {
+  const { data } = await apiClient.put<BahiaResponse>(`${base(workshopId)}/${id}`, {
+    codigo: dto.code,
+    sector: dto.sector,
+    activa: dto.active,
+  });
+  return toBay(data, new Map());
+}
+
+/** Baja lógica: la bahía queda fuera de servicio, no se elimina. */
+export async function deactivateBay(id: string, workshopId?: string): Promise<void> {
+  await apiClient.delete(`${base(workshopId)}/${id}`);
 }
 
 export async function getBaysSummary(workshopId?: string): Promise<BayOccupancySummary> {

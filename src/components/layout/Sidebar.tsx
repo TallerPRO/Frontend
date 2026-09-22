@@ -5,6 +5,7 @@ import {
   Package,
   BarChart3,
   ShieldCheck,
+  Settings,
   ChevronLeft,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   { section: 'catalog', label: 'Catálogo', to: '/catalog/services', icon: Package },
   { section: 'reports', label: 'Reportes', to: '/reports', icon: BarChart3 },
   { section: 'audit', label: 'Auditoría', to: '/audit', icon: ShieldCheck },
+  { section: 'settings', label: 'Configuración', to: '/settings', icon: Settings },
 ];
 
 interface SidebarProps {

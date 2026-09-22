@@ -46,9 +46,31 @@ describe.skipIf(!live)('adaptadores contra el backend real', () => {
     expect(parts.content[0]?.id).toBe(part.id);
   });
 
-  it('órdenes + bahías: crear, asignar, diagnosticar, timeline y liberar', async () => {
+  it('órdenes + bahías: recepcionar con bahía, asignar, diagnosticar, timeline y liberar', async () => {
+    // La bahía va primero: recepcionar exige reservarle un puesto al vehículo.
+    const { data: bahia } = await apiClient.post(`/api/v1/talleres/${DEFAULT_WORKSHOP_ID}/bahias`, {
+      codigo: `L-${String(Date.now()).slice(-4)}`,
+      sector: 'Live',
+    });
+
+    // Y un mecánico: la recepción asigna el equipo desde el catálogo del taller.
+    const { data: mecanico } = await apiClient.post(`/api/v1/talleres/${DEFAULT_WORKSHOP_ID}/mecanicos`, {
+      rut: '12345678-5',
+      nombre: 'Mecánico Live',
+      correo: `live.${Date.now()}@taller.cl`,
+    }).catch(async () => {
+      // Si ya existe (RUT único por taller), se reutiliza el primero de la lista.
+      const { data } = await apiClient.get(`/api/v1/talleres/${DEFAULT_WORKSHOP_ID}/mecanicos`);
+      return { data: data[0] };
+    });
+
     const order = await createOrder({
       workshopId: DEFAULT_WORKSHOP_ID,
+      bayId: bahia.id,
+      mechanicId: mecanico.id,
+      mechanicName: mecanico.nombre,
+      mechanicEmail: mecanico.correo,
+      clientPhone: '+56911111111',
       vehiclePlate: 'LIVE12',
       vehicleBrand: 'Kia',
       vehicleModel: 'Rio',
@@ -61,16 +83,19 @@ describe.skipIf(!live)('adaptadores contra el backend real', () => {
     expect(order.status).toBe('RECEPCIONADA');
     expect(order.folio).toMatch(/^TP-\d{4}-/);
     expect(order.clientEmail).toBe('cliente.live@correo.cl');
+    // La bahía queda reservada en el mismo acto de crear la orden.
+    expect(order.bayId).toBe(bahia.id);
 
     const listed = await listOrders({ workshopId: DEFAULT_WORKSHOP_ID, size: 5 });
     expect(listed.content[0]?.id).toBe(order.id); // más reciente primero
 
-    // Bahía disponible del taller (creada por el backend o por otro test)
-    const { data: bahia } = await apiClient.post(`/api/v1/talleres/${DEFAULT_WORKSHOP_ID}/bahias`, {
-      codigo: `L-${String(Date.now()).slice(-4)}`,
-      sector: 'Live',
+    // Asignar el mecánico sobre la bahía que ya reservó esta misma orden.
+    const assigned = await assignResources(order.id, {
+      mechanicId: crypto.randomUUID(),
+      mechanicName: 'Luis',
+      mechanicEmail: 'luis@taller.cl',
+      bayId: bahia.id,
     });
-    const assigned = await assignResources(order.id, { mechanicId: crypto.randomUUID(), mechanicName: 'Luis', bayId: bahia.id });
     expect(assigned.assignedMechanicName).toBe('Luis');
 
     const bays = await listBays(DEFAULT_WORKSHOP_ID);

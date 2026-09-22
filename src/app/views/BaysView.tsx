@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { ClipboardPlus, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { BayFormModal } from '../../components/settings/BayFormModal';
+import { useBayAdmin } from '../../hooks/useBayAdmin';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { Button } from '../../components/ui/Button';
@@ -8,36 +11,29 @@ import { Spinner } from '../../components/ui/Spinner';
 import { BayStatusLegend } from '../../components/bays/BayStatusLegend';
 import { BayGrid } from '../../components/bays/BayGrid';
 import { BayDetailModal } from '../../components/bays/BayDetailModal';
-import { CancelReservationDialog } from '../../components/bays/CancelReservationDialog';
 import { useBays } from '../../hooks/useBays';
 import type { Bay } from '../../types/bay.types';
 import { DEFAULT_WORKSHOP_ID, WORKSHOP_OPTIONS } from '../../lib/workshops';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage } from '../../api/client';
 
+/**
+ * Mapa de bahías: solo consulta y alta. El estado de cada bahía lo mueve el
+ * avance de su orden (reparación ocupa, lista para retiro libera), nunca esta
+ * pantalla, para que el puesto físico y la orden no puedan contradecirse.
+ */
 export function BaysView() {
   const [workshopId, setWorkshopId] = useState(DEFAULT_WORKSHOP_ID);
-  const { bays, summary, loading, error, cancel, checkIn, release } = useBays(workshopId);
+  const { bays, summary, loading, error, refetch } = useBays(workshopId);
   const [selectedBay, setSelectedBay] = useState<Bay | null>(null);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  // El alta de bahías se comparte con Configuración: mismo modal y mismo hook,
+  // para no tener dos formularios que puedan divergir.
+  const { save: saveBay, usedCodes, refetch: refetchBayAdmin } = useBayAdmin(workshopId);
+  const [bayFormOpen, setBayFormOpen] = useState(false);
 
   function handleSelectBay(bay: Bay) {
     setSelectedBay(bay);
-  }
-
-  async function handleCancel(reason: Parameters<typeof cancel>[2], comment?: string) {
-    if (!selectedBay?.assignment) return;
-    await cancel(selectedBay.id, selectedBay.assignment.reservationId, reason, comment);
-    setSelectedBay(null);
-  }
-
-  async function run(action: () => Promise<void>) {
-    try {
-      await action();
-      setSelectedBay(null);
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
   }
 
   return (
@@ -54,9 +50,13 @@ export function BaysView() {
               aria-label="Taller"
               className="w-44"
             />
-            <Button onClick={() => toast.info('Selecciona una orden desde su detalle para reservar una bahía')}>
+            <Button variant="secondary" onClick={() => setBayFormOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden />
-              Reservar bahía
+              Nueva bahía
+            </Button>
+            <Button onClick={() => navigate('/orders/new')}>
+              <ClipboardPlus className="h-4 w-4" aria-hidden />
+              Recepcionar vehículo
             </Button>
           </>
         }
@@ -75,20 +75,23 @@ export function BaysView() {
         </div>
       )}
 
-      <BayDetailModal
-        open={selectedBay !== null}
-        onClose={() => setSelectedBay(null)}
-        bay={selectedBay}
-        onCancelReservation={() => setCancelDialogOpen(true)}
-        onCheckIn={() => selectedBay && run(() => checkIn(selectedBay.id))}
-        onRelease={() => selectedBay && run(() => release(selectedBay.id))}
-      />
+      <BayDetailModal open={selectedBay !== null} onClose={() => setSelectedBay(null)} bay={selectedBay} />
 
-      <CancelReservationDialog
-        open={cancelDialogOpen}
-        onClose={() => setCancelDialogOpen(false)}
-        bay={selectedBay}
-        onConfirm={handleCancel}
+      <BayFormModal
+        open={bayFormOpen}
+        bay={null}
+        usedCodes={usedCodes()}
+        onClose={() => setBayFormOpen(false)}
+        onSubmit={async (dto) => {
+          try {
+            await saveBay(dto);
+            // El mapa se alimenta de otro hook; hay que refrescar ambos.
+            await Promise.all([refetch(), refetchBayAdmin()]);
+          } catch (err) {
+            toast.error(errorMessage(err, 'No pudimos crear la bahía.'));
+            throw err;
+          }
+        }}
       />
     </>
   );
