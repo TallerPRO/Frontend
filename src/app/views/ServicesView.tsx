@@ -1,3 +1,5 @@
+import { useAuth } from '../../auth/useAuth';
+import { Role } from '../../auth/roles';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -20,6 +22,10 @@ const CATEGORY_OPTIONS = (Object.keys(SERVICE_CATEGORY_LABELS) as ServiceCategor
 
 export function ServicesView() {
   const { items, page, totalPages, loading, error, filters, setFilters, setPage, save, remove } = useServices();
+  const { tieneRol } = useAuth();
+  // Solo Admin administra el catalogo (catalog exige hasRole('Admin')); para el
+  // resto la tabla queda en solo lectura, sin editar ni desactivar.
+  const puedeAdministrar = tieneRol(Role.ADMIN);
   const [editing, setEditing] = useState<Service | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Service | null>(null);
@@ -40,10 +46,12 @@ export function ServicesView() {
         title="Catálogo"
         description="Servicios y repuestos disponibles para las órdenes"
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Nuevo servicio
-          </Button>
+          puedeAdministrar ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nuevo servicio
+            </Button>
+          ) : null
         }
       />
       <CatalogTabs />
@@ -73,8 +81,8 @@ export function ServicesView() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        onEdit={openEdit}
-        onDelete={setDeleting}
+        onEdit={puedeAdministrar ? openEdit : undefined}
+        onDelete={puedeAdministrar ? setDeleting : undefined}
       />
 
       <ServiceFormModal

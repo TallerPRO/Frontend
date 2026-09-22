@@ -1,3 +1,5 @@
+import { useAuth } from '../../auth/useAuth';
+import { Role } from '../../auth/roles';
 import { useState } from 'react';
 import { ClipboardList, Clock, DollarSign, UserPlus, Warehouse } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -24,6 +26,9 @@ const days = new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 });
 export function DashboardView() {
   const navigate = useNavigate();
   const { summary, loading, error } = useOrdersSummary();
+  // Dar de alta mecanicos lo permite catalog a Admin y JefeTaller.
+  const { tieneRol } = useAuth();
+  const puedeGestionarMecanicos = tieneRol(Role.ADMIN, Role.JEFE_TALLER);
   const { orders: recentOrders } = useOrders({ size: 5 });
   // El alta de mecánicos vive aquí para tenerla a mano al abrir el turno; la
   // lista se consume después al confirmar la llegada de un vehículo.
@@ -36,11 +41,13 @@ export function DashboardView() {
         title="Dashboard"
         description="Resumen operativo de la red de talleres"
         actions={
-          <Button variant="secondary" onClick={() => setMechanicFormOpen(true)}>
-            <UserPlus className="h-4 w-4" aria-hidden />
-            Nuevo mecánico
-            {mechanics.length > 0 && <span className="ml-1 text-xs text-gray-400">({mechanics.length})</span>}
-          </Button>
+          puedeGestionarMecanicos ? (
+            <Button variant="secondary" onClick={() => setMechanicFormOpen(true)}>
+              <UserPlus className="h-4 w-4" aria-hidden />
+              Nuevo mecánico
+              {mechanics.length > 0 && <span className="ml-1 text-xs text-gray-400">({mechanics.length})</span>}
+            </Button>
+          ) : null
         }
       />
       <ErrorBanner message={error} />

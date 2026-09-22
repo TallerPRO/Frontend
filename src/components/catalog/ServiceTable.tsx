@@ -11,8 +11,9 @@ interface ServiceTableProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onEdit: (service: Service) => void;
-  onDelete: (service: Service) => void;
+  /** Sin estos callbacks la tabla queda en solo lectura (usuario sin permiso). */
+  onEdit?: (service: Service) => void;
+  onDelete?: (service: Service) => void;
 }
 
 export function formatMinutes(minutes: number): string {
@@ -73,16 +74,16 @@ export function ServiceTable({ services, loading, page, totalPages, onPageChange
       key: 'actions',
       header: '',
       className: 'w-24 text-right',
-      render: (s) => (
+      render: (s) => !onEdit && !onDelete ? null : (
         <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" className="h-8 px-2" aria-label={`Editar ${s.name}`} onClick={() => onEdit(s)}>
+          <Button variant="ghost" className="h-8 px-2" aria-label={`Editar ${s.name}`} onClick={() => onEdit?.(s)}>
             <Pencil className="h-4 w-4" aria-hidden />
           </Button>
           <Button
             variant="ghost"
             className="h-8 px-2 text-red-400 hover:text-red-300"
             aria-label={`Eliminar ${s.name}`}
-            onClick={() => onDelete(s)}
+            onClick={() => onDelete?.(s)}
           >
             <Trash2 className="h-4 w-4" aria-hidden />
           </Button>

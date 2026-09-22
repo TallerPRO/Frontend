@@ -1,3 +1,5 @@
+import { useAuth } from '../../auth/useAuth';
+import { Role } from '../../auth/roles';
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -14,6 +16,9 @@ import type { Part } from '../../types/catalog.types';
 
 export function PartsView() {
   const { items, page, totalPages, loading, error, filters, setFilters, setPage, save, remove } = useParts();
+  // Igual que servicios: el alta y la edicion de repuestos es solo Admin.
+  const { tieneRol } = useAuth();
+  const puedeAdministrar = tieneRol(Role.ADMIN);
   const [editing, setEditing] = useState<Part | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [deleting, setDeleting] = useState<Part | null>(null);
@@ -34,10 +39,12 @@ export function PartsView() {
         title="Catálogo"
         description="Servicios y repuestos disponibles para las órdenes"
         actions={
-          <Button onClick={openCreate}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Nuevo repuesto
-          </Button>
+          puedeAdministrar ? (
+            <Button onClick={openCreate}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nuevo repuesto
+            </Button>
+          ) : null
         }
       />
       <CatalogTabs />
@@ -69,8 +76,8 @@ export function PartsView() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        onEdit={openEdit}
-        onDelete={setDeleting}
+        onEdit={puedeAdministrar ? openEdit : undefined}
+        onDelete={puedeAdministrar ? setDeleting : undefined}
       />
 
       <PartFormModal

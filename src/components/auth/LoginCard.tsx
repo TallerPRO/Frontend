@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { MicrosoftButton } from './MicrosoftButton';
 
@@ -7,11 +8,13 @@ interface LoginCardProps {
   status?: LoginStatus;
   errorMessage?: string | null;
   onLogin?: () => void;
+  /** Contenido extra bajo el botón (el selector de rol del modo demo). */
+  children?: ReactNode;
 }
 
 // Componente puramente visual: no conoce MSAL ni ningún proveedor de auth.
 // `onLogin`, `status` y `errorMessage` los controla quien lo integre.
-export function LoginCard({ status = 'idle', errorMessage = null, onLogin }: LoginCardProps) {
+export function LoginCard({ status = 'idle', errorMessage = null, onLogin, children }: LoginCardProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-navy-900 px-4">
       <div className="w-full max-w-[420px] rounded-[14px] border border-[#242F45] bg-navy-800 p-8">
@@ -34,6 +37,8 @@ export function LoginCard({ status = 'idle', errorMessage = null, onLogin }: Log
         <div className="mt-6">
           <MicrosoftButton redirecting={status === 'redirecting'} onClick={() => onLogin?.()} />
         </div>
+
+        {children}
 
         <p className="mt-4 text-center text-xs text-gray-400">
           Accede con tu cuenta corporativa. Se te pedirá confirmar con tu

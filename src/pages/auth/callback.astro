@@ -1,6 +1,6 @@
 ---
 import '../../styles/global.css';
-import { AuthCallback } from '../../components/auth/AuthCallback';
+import { AuthCallbackHandler } from '../../components/auth/AuthCallbackHandler';
 ---
 
 <!doctype html>
@@ -12,8 +12,7 @@ import { AuthCallback } from '../../components/auth/AuthCallback';
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body class="bg-navy-900">
-    <!-- Solo la vista: procesar el resultado de MSAL y decidir el redirect
-         a /app/dashboard lo hace quien integre el login. -->
-    <AuthCallback client:load />
+    <!-- El handler canjea el código de Azure por los tokens y entra a /app. -->
+    <AuthCallbackHandler client:only="react" />
   </body>
 </html>

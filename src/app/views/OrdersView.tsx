@@ -1,3 +1,5 @@
+import { useAuth } from '../../auth/useAuth';
+import { Role } from '../../auth/roles';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/layout/PageHeader';
@@ -17,6 +19,9 @@ const STATUS_OPTIONS = (Object.keys(ORDER_STATUS_LABELS) as OrderStatus[]).map((
 export function OrdersView() {
   const navigate = useNavigate();
   const { orders, page, totalPages, loading, error, filters, setFilters, setPage } = useOrders();
+  // Crear ordenes: jobs lo permite a Admin, JefeTaller y Cliente.
+  const { tieneRol } = useAuth();
+  const puedeCrearOrden = tieneRol(Role.ADMIN, Role.JEFE_TALLER, Role.CLIENTE);
 
   return (
     <>
@@ -24,10 +29,12 @@ export function OrdersView() {
         title="Órdenes"
         description="Gestión de órdenes de servicio"
         actions={
-          <Button onClick={() => navigate('/orders/new')}>
-            <Plus className="h-4 w-4" aria-hidden />
-            Nueva orden
-          </Button>
+          puedeCrearOrden ? (
+            <Button onClick={() => navigate('/orders/new')}>
+              <Plus className="h-4 w-4" aria-hidden />
+              Nueva orden
+            </Button>
+          ) : null
         }
       />
 

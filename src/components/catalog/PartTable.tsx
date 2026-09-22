@@ -12,8 +12,9 @@ interface PartTableProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
-  onEdit: (part: Part) => void;
-  onDelete: (part: Part) => void;
+  /** Sin estos callbacks la tabla queda en solo lectura (usuario sin permiso). */
+  onEdit?: (part: Part) => void;
+  onDelete?: (part: Part) => void;
 }
 
 export function PartTable({ parts, loading, page, totalPages, onPageChange, onEdit, onDelete }: PartTableProps) {
@@ -69,16 +70,16 @@ export function PartTable({ parts, loading, page, totalPages, onPageChange, onEd
       key: 'actions',
       header: '',
       className: 'w-24 text-right',
-      render: (p) => (
+      render: (p) => !onEdit && !onDelete ? null : (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" className="h-8 px-2" aria-label={`Editar ${p.name}`} onClick={() => onEdit(p)}>
+          <Button variant="ghost" className="h-8 px-2" aria-label={`Editar ${p.name}`} onClick={() => onEdit?.(p)}>
             <Pencil className="h-4 w-4" aria-hidden />
           </Button>
           <Button
             variant="ghost"
             className="h-8 px-2 text-red-400 hover:text-red-300"
             aria-label={`Eliminar ${p.name}`}
-            onClick={() => onDelete(p)}
+            onClick={() => onDelete?.(p)}
           >
             <Trash2 className="h-4 w-4" aria-hidden />
           </Button>

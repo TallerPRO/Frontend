@@ -16,6 +16,8 @@ import type { Bay } from '../../types/bay.types';
 import { DEFAULT_WORKSHOP_ID, WORKSHOP_OPTIONS } from '../../lib/workshops';
 import { ErrorBanner } from '../../components/ui/ErrorBanner';
 import { errorMessage } from '../../api/client';
+import { useAuth } from '../../auth/useAuth';
+import { Role } from '../../auth/roles';
 
 /**
  * Mapa de bahías: solo consulta y alta. El estado de cada bahía lo mueve el
@@ -24,6 +26,10 @@ import { errorMessage } from '../../api/client';
  */
 export function BaysView() {
   const [workshopId, setWorkshopId] = useState(DEFAULT_WORKSHOP_ID);
+  // El alta de bahias la exige catalog con rol Admin; recepcionar, Admin o JefeTaller.
+  const { tieneRol } = useAuth();
+  const puedeCrearBahia = tieneRol(Role.ADMIN);
+  const puedeRecepcionar = tieneRol(Role.ADMIN, Role.JEFE_TALLER);
   const { bays, summary, loading, error, refetch } = useBays(workshopId);
   const [selectedBay, setSelectedBay] = useState<Bay | null>(null);
   const navigate = useNavigate();
@@ -50,14 +56,18 @@ export function BaysView() {
               aria-label="Taller"
               className="w-44"
             />
-            <Button variant="secondary" onClick={() => setBayFormOpen(true)}>
-              <Plus className="h-4 w-4" aria-hidden />
-              Nueva bahía
-            </Button>
-            <Button onClick={() => navigate('/orders/new')}>
-              <ClipboardPlus className="h-4 w-4" aria-hidden />
-              Recepcionar vehículo
-            </Button>
+            {puedeCrearBahia && (
+              <Button variant="secondary" onClick={() => setBayFormOpen(true)}>
+                <Plus className="h-4 w-4" aria-hidden />
+                Nueva bahía
+              </Button>
+            )}
+            {puedeRecepcionar && (
+              <Button onClick={() => navigate('/orders/new')}>
+                <ClipboardPlus className="h-4 w-4" aria-hidden />
+                Recepcionar vehículo
+              </Button>
+            )}
           </>
         }
       />
